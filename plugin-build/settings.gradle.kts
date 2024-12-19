@@ -2,17 +2,19 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-		maven { url = uri("https://maven.architectury.dev/") }
-		maven { url = uri("https://maven.fabricmc.net/") }
-		maven { url = uri("https://maven.minecraftforge.net/") }
-		maven { url = uri("https://maven.blamejared.com/") }
-	}
+    }
 }
 
 dependencyResolutionManagement {
     repositories {
-        mavenCentral()
         google()
+        mavenCentral()
+    }
+
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
     }
 }
 
@@ -29,6 +31,6 @@ develocity {
 	}
 }
 
-rootProject.name = "archie-plugin"
+rootProject.name = ("net.kernelpanicsoft.archie")
 
-includeBuild("plugin-build")
+include(":plugin")

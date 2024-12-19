@@ -1,21 +1,70 @@
-buildscript {
-  extra["kotlin_plugin_id"] = "com.bnorm.template.kotlin-ir-plugin"
-}
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
-  kotlin("jvm") version "1.9.22" apply false
-  id("org.jetbrains.dokka") version "1.9.10" apply false
-  id("com.gradle.plugin-publish") version "1.2.1" apply false
-  id("com.github.gmazzo.buildconfig") version "5.3.5" apply false
-}
-
-allprojects {
-  group = "com.bnorm.template"
-  version = "0.1.0-SNAPSHOT"
+    alias(libs.plugins.kotlin) apply false
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.versionCheck)
 }
 
 subprojects {
-  repositories {
-    mavenCentral()
-  }
+    apply {
+        plugin(rootProject.libs.plugins.detekt.get().pluginId)
+        plugin(rootProject.libs.plugins.ktlint.get().pluginId)
+    }
+
+    ktlint {
+        debug.set(false)
+        verbose.set(true)
+        android.set(false)
+        outputToConsole.set(true)
+        ignoreFailures.set(false)
+        enableExperimentalRules.set(true)
+        filter {
+            exclude("**/generated/**")
+            include("**/kotlin/**")
+        }
+    }
+
+    detekt {
+        config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+    }
+}
+
+tasks.withType<Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        html.outputLocation.set(file("build/reports/detekt.html"))
+    }
+}
+
+tasks.withType<DependencyUpdatesTask> {
+    rejectVersionIf {
+        candidate.version.isNonStable()
+    }
+}
+
+fun String.isNonStable() = "^[0-9,.v-]+(-r)?$".toRegex().matches(this).not()
+
+tasks.register("clean", Delete::class.java) {
+    delete(rootProject.layout.buildDirectory)
+}
+
+tasks.register("reformatAll") {
+    description = "Reformat all the Kotlin Code"
+
+    dependsOn("ktlintFormat")
+    dependsOn(gradle.includedBuild("plugin-build").task(":plugin:ktlintFormat"))
+}
+
+tasks.register("preMerge") {
+    description = "Runs all the tests/verification tasks on both top level and included build."
+
+	dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))
+    dependsOn(gradle.includedBuild("plugin-build").task(":plugin:validatePlugins"))
+}
+
+tasks.wrapper {
+    distributionType = Wrapper.DistributionType.ALL
 }
