@@ -2,6 +2,7 @@ import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.internal.artifacts.dependencies.DefaultMinimalDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultMutableVersionConstraint
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
     kotlin("jvm")
@@ -10,6 +11,20 @@ plugins {
 	`kotlin-dsl-precompiled-script-plugins`
 	alias(libs.plugins.pluginPublish)
 }
+
+val localProperties = kotlin.runCatching { loadProperties("$rootDir/local.properties") }.getOrNull()
+
+val String.prop: String?
+	get() = rootProject.properties[this] as String?
+
+val String.local: String?
+	get() = localProperties?.get(this) as String?
+
+val String.env: String?
+	get() = System.getenv(this)
+
+val String.localOrEnv: String?
+	get() = localProperties?.get(this)?.toString() ?: System.getenv(this.uppercase())
 
 repositories {
 	mavenCentral()
@@ -72,11 +87,17 @@ gradlePlugin {
 publishing {
 	repositories {
 		maven {
-			name = "milosworks"
-			url = uri("https://maven.milosworks.xyz/releases")
+			name = "kernelpanic"
+			val releasesRepoUrl = "https://repo.kernelpanicsoft.net/maven/releases"
+			val snapshotsRepoUrl = "https://repo.kernelpanicsoft.net/maven/snapshots"
+			url = uri(
+				if (project.version.toString().endsWith("SNAPSHOT") || project.version.toString()
+						.startsWith("0")
+				) snapshotsRepoUrl else releasesRepoUrl
+			)
 			credentials(PasswordCredentials::class) {
-				username = System.getenv("GRADLE_MAVEN_PUBLISH_KEY")
-				password = System.getenv("GRADLE_MAVEN_PUBLISH_SECRET")
+				username = "gradle_maven_publish_key".localOrEnv
+				password = "gradle_maven_publish_secret".localOrEnv
 			}
 			authentication {
 				create<BasicAuthentication>("basic")

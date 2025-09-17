@@ -3,7 +3,6 @@ package net.kernelpanicsoft.archie
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import net.fabricmc.loom.util.ModPlatform
 import net.kernelpanicsoft.archie.plugin.ModResourcesExtension
-import net.kernelpanicsoft.archie.plugin.patchedFMLModType
 import org.jetbrains.kotlin.konan.file.file
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
@@ -13,7 +12,7 @@ val extension = extensions.create<ModResourcesExtension>("modResources")
 val loom = extensions.getByType<LoomGradleExtensionAPI>()
 
 val versionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-extension.versions.convention(provider {
+extension.versions = provider {
 	val ret = versionCatalog.versionAliases.associate {
 		// both "." and "-" cause issues with expand :/
 		it.replace(".", "_") to versionCatalog.findVersion(it).get().requiredVersion
@@ -32,12 +31,12 @@ extension.versions.convention(provider {
 
 		else -> ret
 	}
-})
-extension.properties.convention(provider {
+}
+extension.properties = provider {
 	project.properties.mapKeys {
 		it.key.replace(".", "_")
 	}.mapValues { it.value.toString() }
-})
+}
 
 // build logic
 
@@ -105,6 +104,19 @@ abstract class PatchFMLModType : TransformAction<PatchFMLModType.Parameters>
 }
 
 val artifactType: Attribute<String> = Attribute.of("artifactType", String::class.java)
+val patchedFMLModType = Attribute.of("patchedFMLModType", Boolean::class.javaObjectType)
+
+val bundleRuntimeLibraryConfiguration: Configuration by configurations.creating {
+	exclude(group = "com.mojang")
+	exclude(group = "org.jetbrains.kotlin")
+	exclude(group = "org.jetbrains.kotlinx")
+}
+
+val runtimeLibraryConfiguration: Configuration by configurations.creating {
+	exclude(group = "com.mojang")
+	exclude(group = "org.jetbrains.kotlin")
+	exclude(group = "org.jetbrains.kotlinx")
+}
 
 dependencies {
 	attributesSchema {
@@ -120,6 +132,37 @@ dependencies {
 		to.attribute(patchedFMLModType, true).attribute(artifactType, "jar")
 	}
 
-	extensions.add("loom", project.extensions.getByName("loom"))
+//	extensions.add("loom", project.extensions.getByName("loom"))
 }
 
+afterEvaluate {
+	dependencies {
+		bundleRuntimeLibraryConfiguration.resolvedConfiguration.resolvedArtifacts.forEach {
+			"include"(it.moduleVersion.id.toString())
+			when (project.extensions.getByType<LoomGradleExtensionAPI>().platform.get())
+			{
+				ModPlatform.NEOFORGE ->
+					"localRuntime"(it.moduleVersion.id.toString()) {
+						attributes {
+							attribute(patchedFMLModType, true)
+						}
+					}
+
+				else -> Unit
+			}
+		}
+		runtimeLibraryConfiguration.resolvedConfiguration.resolvedArtifacts.forEach {
+			when (project.extensions.getByType<LoomGradleExtensionAPI>().platform.get())
+			{
+				ModPlatform.NEOFORGE ->
+					"localRuntime"(it.moduleVersion.id.toString()) {
+						attributes {
+							attribute(patchedFMLModType, true)
+						}
+					}
+
+				else -> Unit
+			}
+		}
+	}
+}
