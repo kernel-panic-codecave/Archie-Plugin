@@ -1,6 +1,7 @@
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.internal.artifacts.dependencies.DefaultMinimalDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultMutableVersionConstraint
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
@@ -63,8 +64,8 @@ java {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+    compilerOptions {
+	    jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

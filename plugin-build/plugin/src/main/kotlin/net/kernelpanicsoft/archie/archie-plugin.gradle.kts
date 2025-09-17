@@ -24,8 +24,8 @@ extension.versions = provider {
 				.replace(",", " ")
 				.replace(Regex("""\s+"""), " ")
 				.replace(Regex("""\[(\S+)"""), ">=$1")
-				.replace(Regex("""(\S+)\]"""), "<=$1")
-				.replace(Regex("""\](\S+)"""), ">$1")
+				.replace(Regex("""(\S+)]"""), "<=$1")
+				.replace(Regex("""](\S+)"""), ">$1")
 				.replace(Regex("""(\S+)\["""), "<$1")
 		}
 

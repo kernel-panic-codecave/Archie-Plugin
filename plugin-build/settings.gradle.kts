@@ -31,6 +31,7 @@ develocity {
 	}
 }
 
-rootProject.name = ("net.kernelpanicsoft.archie")
-
 include(":plugin")
+
+rootProject.name = ("net.kernelpanicsoft.archie")
+project(":plugin").name = ("archie-plugin")
